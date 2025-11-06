@@ -1,145 +1,182 @@
 import sys
+import math
 import numpy as np
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QWidget, QVBoxLayout
-from robot_2r_ui import Ui_Form
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QVBoxLayout, QWidget, QLabel, QLineEdit, QPushButton, QComboBox
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from time import sleep
 
+# =========================
+# CONFIGURACIÓN SERVOS GPIO
+# =========================
 try:
     from gpiozero import Servo
-    PHYSICAL_MODE = True
+    from gpiozero.pins.pigpio import PiGPIOFactory
+    factory = PiGPIOFactory()
+    servo_enabled = True
+    print("✅ Servos habilitados (modo físico)")
 except ImportError:
     print("⚠️ gpiozero no disponible: el control físico se desactiva (solo simulación).")
-    PHYSICAL_MODE = False
+    servo_enabled = False
+
+# =========================
+# PARÁMETROS DEL ROBOT
+# =========================
+L1 = 10.0  # cm
+L2 = 11.0  # cm
+
+if servo_enabled:
+    servo1 = Servo(17, pin_factory=factory, min_pulse_width=0.5/1000, max_pulse_width=2.5/1000)
+    servo2 = Servo(18, pin_factory=factory, min_pulse_width=0.5/1000, max_pulse_width=2.5/1000)
+else:
+    servo1 = servo2 = None
 
 
-class MplCanvas(FigureCanvas):
-    def __init__(self, parent=None, width=4, height=3, dpi=100):
-        self.fig = Figure(figsize=(width, height), dpi=dpi)
-        self.ax = self.fig.add_subplot(111)
+def map_angle(deg):
+    """Convierte un ángulo en grados (0–180) a rango -1 a 1 para gpiozero."""
+    deg = max(0, min(180, deg))
+    return (deg - 90) / 90.0
+
+
+def mover_servos(theta1_deg, theta2_deg):
+    """Mueve los servos físicamente (si gpiozero está disponible)."""
+    if not servo_enabled:
+        return
+    servo1.value = map_angle(theta1_deg)
+    servo2.value = map_angle(theta2_deg)
+    sleep(0.02)
+
+
+# =========================
+# CLASE PARA DIBUJAR ROBOT
+# =========================
+class RobotCanvas(FigureCanvas):
+    def __init__(self):
+        self.fig = Figure()
         super().__init__(self.fig)
+        self.ax = self.fig.add_subplot(111)
+        self.ax.set_xlim(-25, 25)
+        self.ax.set_ylim(-5, 25)
+        self.ax.set_aspect('equal', 'box')
+        self.ax.grid(True)
+        self.link1, = self.ax.plot([], [], 'o-', lw=4, color='b')
+        self.link2, = self.ax.plot([], [], 'o-', lw=4, color='g')
+        self.target, = self.ax.plot([], [], 'rx', ms=10, mew=2)
+
+    def dibujar_robot(self, theta1, theta2, x_target=None, y_target=None):
+        # Cinemática directa
+        x1 = L1 * math.cos(theta1)
+        y1 = L1 * math.sin(theta1)
+        x2 = x1 + L2 * math.cos(theta1 + theta2)
+        y2 = y1 + L2 * math.sin(theta1 + theta2)
+
+        self.link1.set_data([0, x1], [0, y1])
+        self.link2.set_data([x1, x2], [y1, y2])
+
+        if x_target is not None and y_target is not None:
+            self.target.set_data([x_target], [y_target])
+
+        self.ax.figure.canvas.draw()
 
 
-class RobotApp(QMainWindow, Ui_Form):
+# =========================
+# CLASE PRINCIPAL INTERFAZ
+# =========================
+class RobotApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setupUi(self)
+        self.setWindowTitle("Simulación Robot 2R")
+        self.resize(800, 600)
 
-        self.L1 = 10
-        self.L2 = 11
+        central = QWidget()
+        self.setCentralWidget(central)
+        layout = QVBoxLayout(central)
 
-        # 🧩 Creamos un contenedor donde irá la simulación
-        self.sim_container = QWidget(self)
-        self.layout_sim = QVBoxLayout(self.sim_container)
-        self.setCentralWidget(self.sim_container)
+        # Área de simulación
+        self.canvas = RobotCanvas()
+        layout.addWidget(self.canvas)
 
-        # Agregar la gráfica
-        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
-        self.layout_sim.addWidget(self.canvas)
-        self.ax = self.canvas.ax
-        self.ax.set_xlim(-25, 25)
-        self.ax.set_ylim(-25, 25)
-        self.ax.set_aspect('equal')
-        self.ax.grid(True)
+        # Controles
+        control_layout = QtWidgets.QFormLayout()
+        self.x_input = QLineEdit()
+        self.y_input = QLineEdit()
+        self.elbow_combo = QComboBox()
+        self.elbow_combo.addItems(["Codo arriba", "Codo abajo"])
+        self.steps_input = QLineEdit("40")
+        self.move_button = QPushButton("Mover robot")
 
-        # Crear controles (si no están en el UI)
-        self.controls = QWidget(self)
-        control_layout = QtWidgets.QFormLayout(self.controls)
+        self.theta1_label = QLabel("θ1 = 0°")
+        self.theta2_label = QLabel("θ2 = 0°")
 
-        self.inputX = QtWidgets.QLineEdit()
-        self.inputY = QtWidgets.QLineEdit()
-        self.btnMover = QtWidgets.QPushButton("Mover")
-        self.lblTheta1 = QtWidgets.QLabel("θ1 = 0°")
-        self.lblTheta2 = QtWidgets.QLabel("θ2 = 0°")
+        control_layout.addRow("X (cm):", self.x_input)
+        control_layout.addRow("Y (cm):", self.y_input)
+        control_layout.addRow("Codo:", self.elbow_combo)
+        control_layout.addRow("Pasos animación:", self.steps_input)
+        control_layout.addRow(self.move_button)
+        control_layout.addRow(self.theta1_label)
+        control_layout.addRow(self.theta2_label)
 
-        control_layout.addRow("X (cm):", self.inputX)
-        control_layout.addRow("Y (cm):", self.inputY)
-        control_layout.addRow(self.btnMover)
-        control_layout.addRow(self.lblTheta1)
-        control_layout.addRow(self.lblTheta2)
+        layout.addLayout(control_layout)
 
-        self.layout_sim.addWidget(self.controls)
+        # Conectar
+        self.move_button.clicked.connect(self.mover_robot)
 
-        # Conectar botón
-        self.btnMover.clicked.connect(self.mover_robot)
-
-        # Servos
-        if PHYSICAL_MODE:
-            self.servo1 = Servo(17)
-            self.servo2 = Servo(18)
-        else:
-            self.servo1 = None
-            self.servo2 = None
-
+        # Estado inicial
         self.theta1 = 0
         self.theta2 = 0
-        self.actualizar_grafica()
-
-    def cinematica_inversa(self, x, y):
-        r = np.sqrt(x**2 + y**2)
-        if r > (self.L1 + self.L2) or r < abs(self.L1 - self.L2):
-            raise ValueError("El punto está fuera del área de trabajo.")
-
-        cos_theta2 = (x**2 + y**2 - self.L1**2 - self.L2**2) / (2 * self.L1 * self.L2)
-        sin_theta2 = np.sqrt(1 - cos_theta2**2)
-        theta2 = np.arctan2(sin_theta2, cos_theta2)
-
-        k1 = self.L1 + self.L2 * cos_theta2
-        k2 = self.L2 * sin_theta2
-        theta1 = np.arctan2(y, x) - np.arctan2(k2, k1)
-        return theta1, theta2
-
-    def cinematica_directa(self, theta1, theta2):
-        x1 = self.L1 * np.cos(theta1)
-        y1 = self.L1 * np.sin(theta1)
-        x2 = x1 + self.L2 * np.cos(theta1 + theta2)
-        y2 = y1 + self.L2 * np.sin(theta1 + theta2)
-        return (x1, y1), (x2, y2)
-
-    def actualizar_grafica(self):
-        self.ax.clear()
-        self.ax.set_xlim(-25, 25)
-        self.ax.set_ylim(-25, 25)
-        self.ax.set_aspect('equal')
-        self.ax.grid(True)
-
-        (x1, y1), (x2, y2) = self.cinematica_directa(self.theta1, self.theta2)
-        self.ax.plot([0, x1], [0, y1], 'b-', linewidth=4)
-        self.ax.plot([x1, x2], [y1, y2], 'g-', linewidth=4)
-        self.ax.plot([0, x1, x2], [0, y1, y2], 'ko', markersize=6)
-        self.canvas.draw()
+        self.canvas.dibujar_robot(0, 0)
 
     def mover_robot(self):
         try:
-            x = float(self.inputX.text())
-            y = float(self.inputY.text())
+            x = float(self.x_input.text())
+            y = float(self.y_input.text())
+            steps = int(self.steps_input.text())
+            elbow = self.elbow_combo.currentText()
+        except ValueError:
+            QMessageBox.warning(self, "Error", "Ingrese valores numéricos válidos.")
+            return
 
-            theta1, theta2 = self.cinematica_inversa(x, y)
+        # Verificar si está dentro del área de trabajo
+        if math.hypot(x, y) > (L1 + L2) or math.hypot(x, y) < abs(L1 - L2):
+            QMessageBox.warning(self, "Fuera de alcance", "El punto está fuera del área de trabajo.")
+            return
 
-            self.lblTheta1.setText(f"θ1 = {np.degrees(theta1):.2f}°")
-            self.lblTheta2.setText(f"θ2 = {np.degrees(theta2):.2f}°")
+        # Cinemática inversa
+        cos_t2 = (x**2 + y**2 - L1**2 - L2**2) / (2 * L1 * L2)
+        sin_t2 = math.sqrt(1 - cos_t2**2)
+        if elbow == "Codo abajo":
+            sin_t2 = -sin_t2
 
-            pasos = 40
-            for i in range(1, pasos + 1):
-                t1 = self.theta1 + (theta1 - self.theta1) * i / pasos
-                t2 = self.theta2 + (theta2 - self.theta2) * i / pasos
-                self.theta1, self.theta2 = t1, t2
-                self.actualizar_grafica()
-                QApplication.processEvents()
-                sleep(0.02)
+        theta2 = math.atan2(sin_t2, cos_t2)
+        k1 = L1 + L2 * cos_t2
+        k2 = L2 * sin_t2
+        theta1 = math.atan2(y, x) - math.atan2(k2, k1)
 
-            if PHYSICAL_MODE:
-                self.servo1.value = theta1 / np.pi
-                self.servo2.value = theta2 / np.pi
+        theta1_deg = math.degrees(theta1)
+        theta2_deg = math.degrees(theta2)
 
-        except ValueError as e:
-            QMessageBox.warning(self, "Error", str(e))
-        except Exception as e:
-            QMessageBox.critical(self, "Error inesperado", str(e))
+        self.theta1_label.setText(f"θ1 = {theta1_deg:.1f}°")
+        self.theta2_label.setText(f"θ2 = {theta2_deg:.1f}°")
+
+        # Animación
+        t1_ini = self.theta1
+        t2_ini = self.theta2
+        for i in range(steps + 1):
+            t1_i = t1_ini + (theta1 - t1_ini) * (i / steps)
+            t2_i = t2_ini + (theta2 - t2_ini) * (i / steps)
+            self.canvas.dibujar_robot(t1_i, t2_i, x, y)
+            mover_servos(math.degrees(t1_i), math.degrees(t2_i))
+            QtWidgets.QApplication.processEvents()
+            sleep(0.02)
+
+        self.theta1 = theta1
+        self.theta2 = theta2
 
 
+# =========================
+# MAIN
+# =========================
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = RobotApp()
