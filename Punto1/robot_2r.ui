@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>900</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Simulación Robot 2R</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <item>
+    <widget class="QFrame" name="leftFrame">
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_1">
+
+      <!-- Grupo de coordenadas -->
+      <item>
+       <widget class="QGroupBox" name="groupBox_coords">
+        <property name="title">
+         <string>Posición objetivo (cm)</string>
+        </property>
+        <layout class="QFormLayout" name="formLayout_coords">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_x">
+           <property name="text">
+            <string>X (cm):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="x_input">
+           <property name="text">
+            <string>10</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_y">
+           <property name="text">
+            <string>Y (cm):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="y_input">
+           <property name="text">
+            <string>0</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+
+      <!-- Botón mover -->
+      <item>
+       <widget class="QPushButton" name="move_button">
+        <property name="text">
+         <string>Mover</string>
+        </property>
+       </widget>
+      </item>
+
+      <!-- Grupo de ángulos -->
+      <item>
+       <widget class="QGroupBox" name="groupBox_angles">
+        <property name="title">
+         <string>Ángulos de articulaciones</string>
+        </property>
+        <layout class="QFormLayout" name="formLayout_angles">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_t1">
+           <property name="text">
+            <string>θ1:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="theta1_label">
+           <property name="text">
+            <string>θ1 = 0°</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_t2">
+           <property name="text">
+            <string>θ2:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="theta2_label">
+           <property name="text">
+            <string>θ2 = 0°</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+
+      <!-- Grupo de opciones -->
+      <item>
+       <widget class="QGroupBox" name="groupBox_options">
+        <property name="title">
+         <string>Opciones</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QLabel" name="label_elbow">
+           <property name="text">
+            <string>Configuración codo:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="elbow_combo">
+           <item>
+            <property name="text">
+             <string>down (codo abajo)</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>up (codo arriba)</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_steps">
+           <property name="text">
+            <string>Pasos animación:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="steps_input">
+           <property name="text">
+            <string>100</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+
+      <item>
+       <spacer name="verticalSpacer">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+
+     </layout>
+    </widget>
+   </item>
+
+   <!-- Widget donde se mostrará el gráfico del robot -->
+   <item>
+    <widget class="QWidget" name="plot_widget">
+     <property name="minimumSize">
+      <size>
+       <width>500</width>
+       <height>500</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
