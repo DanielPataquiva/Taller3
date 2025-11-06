@@ -2,7 +2,10 @@ import sys
 import math
 import numpy as np
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QVBoxLayout, QWidget, QLabel, QLineEdit, QPushButton, QComboBox
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QMessageBox, QVBoxLayout,
+    QWidget, QLabel, QLineEdit, QPushButton, QComboBox
+)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from time import sleep
@@ -24,7 +27,15 @@ except ImportError:
 # PARÁMETROS DEL ROBOT
 # =========================
 L1 = 10.0  # cm
-L2 = 11.0  # cm
+L2 = 10.0  # cm
+
+# Offset físico de los servos (ajústalos hasta que coincida la posición real con la simulada)
+OFFSET_THETA1 = 90   # Grado donde el brazo 1 apunta al eje X positivo
+OFFSET_THETA2 = 90   # Grado donde el brazo 2 está extendido en línea con L1
+
+# Invertir servos si giran al revés
+INVERT_SERVO1 = False
+INVERT_SERVO2 = True
 
 if servo_enabled:
     servo1 = Servo(17, pin_factory=factory, min_pulse_width=0.5/1000, max_pulse_width=2.5/1000)
@@ -43,8 +54,16 @@ def mover_servos(theta1_deg, theta2_deg):
     """Mueve los servos físicamente (si gpiozero está disponible)."""
     if not servo_enabled:
         return
-    servo1.value = map_angle(theta1_deg)
-    servo2.value = map_angle(theta2_deg)
+
+    # Aplicar offsets físicos
+    ang1 = OFFSET_THETA1 + (theta1_deg if not INVERT_SERVO1 else -theta1_deg)
+    ang2 = OFFSET_THETA2 + (theta2_deg if not INVERT_SERVO2 else -theta2_deg)
+
+    ang1 = max(0, min(180, ang1))
+    ang2 = max(0, min(180, ang2))
+
+    servo1.value = map_angle(ang1)
+    servo2.value = map_angle(ang2)
     sleep(0.02)
 
 
@@ -65,7 +84,6 @@ class RobotCanvas(FigureCanvas):
         self.target, = self.ax.plot([], [], 'rx', ms=10, mew=2)
 
     def dibujar_robot(self, theta1, theta2, x_target=None, y_target=None):
-        # Cinemática directa
         x1 = L1 * math.cos(theta1)
         y1 = L1 * math.sin(theta1)
         x2 = x1 + L2 * math.cos(theta1 + theta2)
@@ -159,7 +177,7 @@ class RobotApp(QMainWindow):
         self.theta1_label.setText(f"θ1 = {theta1_deg:.1f}°")
         self.theta2_label.setText(f"θ2 = {theta2_deg:.1f}°")
 
-        # Animación
+        # Animación + movimiento físico
         t1_ini = self.theta1
         t2_ini = self.theta2
         for i in range(steps + 1):
