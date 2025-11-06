@@ -2,62 +2,41 @@
 <ui version="4.0">
  <class>Form</class>
  <widget class="QWidget" name="Form">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>800</width>
-    <height>600</height>
-   </rect>
-  </property>
-  <property name="windowTitle">
-   <string>Simulación Robot 2R</string>
-  </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
-    <!-- Área donde se dibuja el robot -->
-    <widget class="QWidget" name="widgetGrafica">
-     <property name="minimumSize">
-      <size>
-       <width>600</width>
-       <height>400</height>
-      </size>
-     </property>
-     <layout class="QVBoxLayout" name="layoutGrafica"/>
-    </widget>
+    <widget class="QWidget" name="widgetGrafica" native="true"/>
    </item>
    <item>
-    <!-- Controles de entrada -->
     <layout class="QFormLayout" name="formLayout">
-     <item row="0" column="0">
+     <item row="0" labelRole="LabelRole">
       <widget class="QLabel" name="labelX">
        <property name="text">
         <string>X (cm):</string>
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="x_input"/>
+     <item row="0" fieldRole="FieldRole">
+      <widget class="QLineEdit" name="inputX"/>
      </item>
-     <item row="1" column="0">
+     <item row="1" labelRole="LabelRole">
       <widget class="QLabel" name="labelY">
        <property name="text">
         <string>Y (cm):</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="1">
-      <widget class="QLineEdit" name="y_input"/>
+     <item row="1" fieldRole="FieldRole">
+      <widget class="QLineEdit" name="inputY"/>
      </item>
-     <item row="2" column="0">
+     <item row="2" labelRole="LabelRole">
       <widget class="QLabel" name="labelCodo">
        <property name="text">
         <string>Codo:</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
-      <widget class="QComboBox" name="elbow_combo">
+     <item row="2" fieldRole="FieldRole">
+      <widget class="QComboBox" name="comboCodo">
        <item>
         <property name="text">
          <string>Codo arriba</string>
@@ -70,36 +49,36 @@
        </item>
       </widget>
      </item>
-     <item row="3" column="0">
+     <item row="3" labelRole="LabelRole">
       <widget class="QLabel" name="labelPasos">
        <property name="text">
         <string>Pasos animación:</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="1">
-      <widget class="QLineEdit" name="steps_input">
+     <item row="3" fieldRole="FieldRole">
+      <widget class="QLineEdit" name="inputPasos">
        <property name="text">
         <string>40</string>
        </property>
       </widget>
      </item>
-     <item row="4" column="0" colspan="2">
-      <widget class="QPushButton" name="move_button">
+     <item row="4" labelRole="SpanningRole">
+      <widget class="QPushButton" name="btnMover">
        <property name="text">
         <string>Mover robot</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
-      <widget class="QLabel" name="theta1_label">
+     <item row="5" labelRole="SpanningRole">
+      <widget class="QLabel" name="labelTheta1">
        <property name="text">
         <string>θ1 = 0°</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="1">
-      <widget class="QLabel" name="theta2_label">
+     <item row="6" labelRole="SpanningRole">
+      <widget class="QLabel" name="labelTheta2">
        <property name="text">
         <string>θ2 = 0°</string>
        </property>
